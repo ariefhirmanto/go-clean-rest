@@ -1,8 +1,8 @@
-package http
+package controller
 
 import (
 	"net/http"
-	"project-go/httpError"
+	"project-go/exception"
 	"project-go/post"
 
 	"github.com/gin-gonic/gin"
@@ -30,13 +30,13 @@ func (h *postHandlers) CreatePost(c *gin.Context) {
 
 	var input post.InputPostRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
 	err := h.postUC.CreatePost(ctx, input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
@@ -51,7 +51,7 @@ func (h *postHandlers) GetAllPost(c *gin.Context) {
 
 	post, err := h.postUC.FindAllPost(ctx)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
@@ -65,13 +65,13 @@ func (h *postHandlers) GetPostByID(c *gin.Context) {
 	var input post.InputPostID
 	err := c.ShouldBindUri(&input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
 	post, err := h.postUC.FindByID(ctx, input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
@@ -85,13 +85,13 @@ func (h *postHandlers) GetPostByTitle(c *gin.Context) {
 	var input post.InputPostTitle
 	err := c.ShouldBindUri(&input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
 	post, err := h.postUC.FindByTitle(ctx, input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
@@ -105,13 +105,13 @@ func (h *postHandlers) GetPostBySlug(c *gin.Context) {
 	var input post.InputPostSlug
 	err := c.ShouldBindUri(&input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
 	post, err := h.postUC.FindBySlug(ctx, input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
@@ -125,13 +125,13 @@ func (h *postHandlers) Delete(c *gin.Context) {
 	var input post.InputPostID
 	err := c.ShouldBindUri(&input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
 	err = h.postUC.DeletePost(ctx, input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
@@ -144,13 +144,13 @@ func (h *postHandlers) UpdatePost(c *gin.Context) {
 
 	var input post.InputUpdatePostRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 
 	err := h.postUC.UpdatePost(ctx, input)
 	if err != nil {
-		c.JSON(httpError.ErrorResponse(err))
+		c.JSON(exception.ErrorResponse(err))
 		return
 	}
 

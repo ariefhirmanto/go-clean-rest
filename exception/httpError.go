@@ -1,4 +1,4 @@
-package httpError
+package exception
 
 import (
 	"context"

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"fmt"
+	"project-go/exception"
 
 	"github.com/spf13/viper"
 )
@@ -23,24 +23,18 @@ type DatabaseConfig struct {
 	DBPass string `mapstructure:"DBPass"`
 }
 
-func LoadConfig(path string) (config MainConfig, err error) {
+func LoadConfig(path string) (config MainConfig) {
 	viper.AddConfigPath(path)
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 
 	viper.AutomaticEnv()
 
-	err = viper.ReadInConfig()
-	if err != nil {
-		return config, err
-	}
+	err := viper.ReadInConfig()
+	exception.PanicIfNeeded(err)
 
 	err = viper.Unmarshal(&config)
-	if err != nil {
-		fmt.Printf("Failed to unmarshal")
-		return config, err
-	}
+	exception.PanicIfNeeded(err)
 
-	fmt.Printf("%+v\n", config)
-	return config, nil
+	return config
 }
