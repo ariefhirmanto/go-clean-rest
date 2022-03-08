@@ -25,16 +25,11 @@ type Server struct {
 	redisClient *redis.Client
 }
 
-// type Server struct {
-// 	httpServer *http.Server
-
-// 	postUC post.Usecase
-// }
-
-func NewServer(cfg *config.MainConfig, db *sql.DB) *Server {
+func NewServer(cfg *config.MainConfig, db *sql.DB, cache *redis.Client) *Server {
 	return &Server{
-		cfg: cfg,
-		db:  db,
+		cfg:         cfg,
+		db:          db,
+		redisClient: cache,
 	}
 }
 
@@ -43,7 +38,9 @@ func (s *Server) Run() error {
 	router.Use(CORSMiddleware())
 
 	postRepo := postRepository.NewRepository(s.db)
-	postUC := postUsecase.NewPostUsecase(postRepo)
+	postCache := postRepository.NewCacheRepository(s.redisClient)
+
+	postUC := postUsecase.NewPostUsecase(postRepo, postCache)
 	postHandler.RegisterHTTPEndpoints(router, postUC)
 
 	s.httpServer = &http.Server{
@@ -70,47 +67,6 @@ func (s *Server) Run() error {
 
 	return s.httpServer.Shutdown(ctx)
 }
-
-// func NewServer(config _config.MainConfig) *Server {
-// 	db := _config.InitDB(config)
-
-// 	postRepository := _postRepo.NewRepository(db)
-
-// 	return &Server{
-// 		postUC: _postUsecase.NewPostUsecase(postRepository),
-// 	}
-// }
-
-// func (s *Server) Run(port string) error {
-// 	router := gin.Default()
-// 	router.Use(CORSMiddleware())
-
-// 	_postHandler.RegisterHTTPEndpoints(router, s.postUC)
-
-// 	s.httpServer = &http.Server{
-// 		Addr:           port,
-// 		Handler:        router,
-// 		ReadTimeout:    10 * time.Second,
-// 		WriteTimeout:   10 * time.Second,
-// 		MaxHeaderBytes: 1 << 20,
-// 	}
-
-// 	go func() {
-// 		if err := s.httpServer.ListenAndServe(); err != nil {
-// 			log.Fatalf("Failed to listen and serve: %+v", err)
-// 		}
-// 	}()
-
-// 	quit := make(chan os.Signal, 1)
-// 	signal.Notify(quit, os.Interrupt, os.Interrupt)
-
-// 	<-quit
-
-// 	ctx, shutdown := context.WithTimeout(context.Background(), 5*time.Second)
-// 	defer shutdown()
-
-// 	return s.httpServer.Shutdown(ctx)
-// }
 
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {

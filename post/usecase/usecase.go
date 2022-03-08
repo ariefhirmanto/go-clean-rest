@@ -5,6 +5,7 @@ import (
 	"log"
 	"project-go/models"
 	"project-go/post"
+	"strconv"
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -12,14 +13,18 @@ import (
 
 type usecase struct {
 	// cfg       *config.Config
-	postRepo post.Repository
-	// redisRepo news.RedisRepository
+	postRepo  post.Repository
+	redisRepo post.CacheRepository
 	// logger    logger.Logger
 }
 
+const (
+	cacheDuration = 3600
+)
+
 // Post Usecase constructor
-func NewPostUsecase(postRepo post.Repository) *usecase {
-	return &usecase{postRepo: postRepo}
+func NewPostUsecase(postRepo post.Repository, cacheRepo post.CacheRepository) *usecase {
+	return &usecase{postRepo: postRepo, redisRepo: cacheRepo}
 }
 
 func (u *usecase) CreatePost(ctx context.Context, input post.InputPostRequest) (err error) {
@@ -64,10 +69,26 @@ func (u *usecase) FindByID(ctx context.Context, input post.InputPostID) (resp mo
 	span, ctx := opentracing.StartSpanFromContext(ctx, "postUsecase.FindByID")
 	defer span.Finish()
 
+	respCache, err := u.redisRepo.GetPostByID(ctx, strconv.Itoa(int(input.ID)))
+	if err != nil {
+		log.Println("[Post][FindByID][Usecase] Problem getting data from Cache, err: ", err.Error())
+		return resp, errors.WithMessage(err, "postUC.FindByID.CacheProblem")
+	}
+
+	if respCache != (models.Post{}) {
+		return respCache, nil
+	}
+
 	resp, err = u.postRepo.FindByID(ctx, input.ID)
 	if err != nil {
 		log.Println("[Post][FindByID][Usecase] Problem to querying to db, err: ", err.Error())
 		return resp, errors.WithMessage(err, "postUC.FindByID.QueryingProblem")
+	}
+
+	err = u.redisRepo.SetPostByID(ctx, strconv.Itoa(int(input.ID)), cacheDuration, resp)
+	if err != nil {
+		log.Println("[Post][FindByID][Usecase] Problem set data to Cache, err: ", err.Error())
+		return resp, errors.WithMessage(err, "postUC.FindByID.CacheProblem")
 	}
 
 	return resp, nil
@@ -77,10 +98,26 @@ func (u *usecase) FindByTitle(ctx context.Context, input post.InputPostTitle) (r
 	span, ctx := opentracing.StartSpanFromContext(ctx, "postUsecase.FindByTitle")
 	defer span.Finish()
 
+	respCache, err := u.redisRepo.GetPostByTitle(ctx, input.Title)
+	if err != nil {
+		log.Println("[Post][FindByTitle][Usecase] Problem getting data from Cache, err: ", err.Error())
+		return resp, errors.WithMessage(err, "postUC.FindByTitle.CacheProblem")
+	}
+
+	if respCache != (models.Post{}) {
+		return respCache, nil
+	}
+
 	resp, err = u.postRepo.FindByTitle(ctx, input.Title)
 	if err != nil {
 		log.Println("[Post][FindByTitle][Usecase] Problem to querying to db, err: ", err.Error())
 		return resp, errors.WithMessage(err, "postUC.FindByTitle.QueryingProblem")
+	}
+
+	err = u.redisRepo.SetPostByTitle(ctx, input.Title, cacheDuration, resp)
+	if err != nil {
+		log.Println("[Post][FindByTitle][Usecase] Problem set data to Cache, err: ", err.Error())
+		return resp, errors.WithMessage(err, "postUC.FindByTitle.CacheProblem")
 	}
 
 	return resp, nil
@@ -90,10 +127,26 @@ func (u *usecase) FindBySlug(ctx context.Context, input post.InputPostSlug) (res
 	span, ctx := opentracing.StartSpanFromContext(ctx, "postUsecase.FindBySlug")
 	defer span.Finish()
 
+	respCache, err := u.redisRepo.GetPostBySlug(ctx, input.Slug)
+	if err != nil {
+		log.Println("[Post][FindBySlug][Usecase] Problem getting data from Cache, err: ", err.Error())
+		return resp, errors.WithMessage(err, "postUC.FindBySlug.CacheProblem")
+	}
+
+	if respCache != (models.Post{}) {
+		return respCache, nil
+	}
+
 	resp, err = u.postRepo.FindBySlug(ctx, input.Slug)
 	if err != nil {
 		log.Println("[Post][FindBySlug][Usecase] Problem to querying to db, err: ", err.Error())
 		return resp, errors.WithMessage(err, "postUC.FindBySlug.QueryingProblem")
+	}
+
+	err = u.redisRepo.SetPostBySlug(ctx, input.Slug, cacheDuration, resp)
+	if err != nil {
+		log.Println("[Post][FindBySlug][Usecase] Problem set data to Cache, err: ", err.Error())
+		return resp, errors.WithMessage(err, "postUC.FindBySlug.CacheProblem")
 	}
 
 	return resp, nil
@@ -107,6 +160,12 @@ func (u *usecase) DeletePost(ctx context.Context, input post.InputPostID) error 
 	if err != nil {
 		log.Println("[Post][DeletePost][Usecase] Problem to querying to db, err: ", err.Error())
 		return errors.WithMessage(err, "postUC.DeletePost.QueryingProblem")
+	}
+
+	err = u.redisRepo.DeletePostByID(ctx, strconv.Itoa(int(input.ID)))
+	if err != nil {
+		log.Println("[Post][DeletePost][Usecase] Problem delete data in cache, err: ", err.Error())
+		return errors.WithMessage(err, "postUC.DeletePost.CacheProblem")
 	}
 
 	return nil
