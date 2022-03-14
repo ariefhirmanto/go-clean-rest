@@ -1,0 +1,17 @@
+Database:
+  Host: "127.0.0.1"
+  Port: "3306"
+  DBName: "project-go"
+  DBUser: "root"
+  DBPass: "admin"
+
+Server:
+  Address: ":5000"
+
+Redis:
+  Host: "localhost:6379"
+  MinIdleConns: 200
+  PoolSize: 12000
+  PoolTimeout: 240
+  Password:
+  DB: 0
